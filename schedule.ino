@@ -1,12 +1,14 @@
 
 bool data;
 long onTime, offTime;
-byte SumON, SumOFF; // number of programms on and number of programmes off
+// byte SumON, SumOFF; // number of programms on and number of programmes off
+bool SumON;
 void process()      // ! PLEASE DO NOT DISTURB THE PROGRAM SEQUENCE OF PROCESS LOOP !
 {
   static byte PrevSeconds = 1; //let it run at initialisation
   if (Second != PrevSeconds)
   {
+    SumON = false;
     for (int i = 0; i < (progMax * 7); i += 7)
     {
       DateTime on(Year, Month, Day, readEEPROM(i), readEEPROM(i + 1), readEEPROM(i + 2));
@@ -14,25 +16,23 @@ void process()      // ! PLEASE DO NOT DISTURB THE PROGRAM SEQUENCE OF PROCESS L
 
       onTime = on.unixtime();
       offTime = off.unixtime();
-
-      if (onTime > offTime)
-      {
-        DateTime off(Year, Month, (Day + 1), readEEPROM(i + 3), readEEPROM(i + 4), readEEPROM(i + 5));
-        offTime = off.unixtime();
-      }
+      
       bool temp = pgm_read_byte(&weekPing[(readEEPROM(i + 6))][Week]); // get programmed week from PROGMEM
 
-      if ((onTime <= unixNow) && (unixNow < offTime) && (temp == 1))
+      //----------on------------------of-----------
+      //<-off-----><-------on----------><----of--->
+
+      //----------of------------------on-----------
+      //<-on-----><-------off----------><----on--->
+
+      if ((((onTime < offTime) && (unixNow >= onTime) && (unixNow < offTime)) || 
+         ((onTime > offTime) && ((unixNow >= onTime) || (unixNow < offTime)))) && (temp == 1))
       {
-        SumON++;
-      }
-      else
-      {
-        SumOFF--;
+        SumON = true;
       }
     }
 
-    if (SumON > 0)
+    if (SumON)
     {
       processOut = HIGH;
     }
@@ -40,9 +40,6 @@ void process()      // ! PLEASE DO NOT DISTURB THE PROGRAM SEQUENCE OF PROCESS L
     {
       processOut = LOW;
     }
-
-    SumOFF = 0; // always put this at last
-    SumON = 0;  // always put this at last*/
 
     PrevSeconds = Second;
   }
