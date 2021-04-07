@@ -14,19 +14,21 @@ void process()      // ! PLEASE DO NOT DISTURB THE PROGRAM SEQUENCE OF PROCESS L
 
       onTime = on.unixtime();
       offTime = off.unixtime();
-
-      if (onTime > offTime)
-      {
-        DateTime off(Year, Month, (Day + 1), readEEPROM(i + 3), readEEPROM(i + 4), readEEPROM(i + 5));
-        offTime = off.unixtime();
-      }
+      
       bool temp = pgm_read_byte(&weekPing[(readEEPROM(i + 6))][Week]); // get programmed week from PROGMEM
 
-      if ((onTime <= unixNow) && (unixNow < offTime) && (temp == 1))
+      //----------on------------------of-----------
+      //<-off-----><-------on----------><----of--->
+
+      //----------of------------------on-----------
+      //<-on-----><-------off----------><----on--->
+
+      if ((((onTime < offTime) && (unixNow >= onTime) && (unixNow < offTime)) || 
+         ((onTime > offTime) && ((unixNow >= onTime) || (unixNow < offTime)))) && (temp == 1))
       {
         SumON++;
       }
-      else
+      else 
       {
         SumOFF--;
       }
